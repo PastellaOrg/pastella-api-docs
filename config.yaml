@@ -1,0 +1,3488 @@
+openapi: 3.0.0
+info:
+  title: Pastella Daemon RPC API
+  version: 1.0.0
+  description: |
+    Complete REST and JSON-RPC API documentation for the Pastella cryptocurrency daemon.
+
+    ## Base URL
+    Default RPC port: `21001`
+
+    ## JSON-RPC Methods
+    All JSON-RPC methods are called via POST to `/json_rpc` with the method name in the request body.
+
+    ## Transaction Types
+    - **COINBASE**: Mining reward transaction
+    - **TRANSFER**: Regular transfer transaction
+    - **STAKING**: Staking-related transaction
+
+    ## RPC Mode Permissions
+    - **Default**: Basic endpoints (mining, network info)
+    - **BlockExplorerEnabled** (--enable-blockexplorer): Blockchain explorer features
+    - **AllMethodsEnabled** (--enable-blockexplorer-detailed): Advanced querying features
+  contact:
+    name: Pastella Development Team
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:21001
+    description: Local development server
+
+tags:
+  - name: General
+    description: General daemon information
+  - name: Mining
+    description: Mining operations
+  - name: Blocks
+    description: Block information
+  - name: Transactions
+    description: Transaction queries and submission
+  - name: Wallet
+    description: Wallet operations and synchronization
+  - name: UTXO
+    description: UTXO queries
+  - name: Network
+    description: Network information
+  - name: Staking
+    description: Staking operations
+  - name: Governance
+    description: Governance and voting operations
+  - name: Advanced
+    description: Advanced blockchain querying
+
+paths:
+  ################################################################################
+  # REST ENDPOINTS - GET
+  ################################################################################
+
+  /info:
+    get:
+      tags:
+        - General
+      summary: info - Get daemon information
+      description: |
+        Returns general information about the daemon and blockchain status.
+        Includes current height, network height, difficulty, and transaction counts.
+      operationId: getInfo
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "OK"
+                  height:
+                    type: integer
+                    description: Current blockchain height
+                    example: 1000
+                  network_height:
+                    type: integer
+                    description: Network height (may differ during sync)
+                    example: 1000
+                  top_block_hash:
+                    type: string
+                    description: Hash of the top block
+                    example: "abc123..."
+                  difficulty:
+                    type: integer
+                    description: Current difficulty for next block
+                    example: 10000
+                  tx_count:
+                    type: integer
+                    description: Total number of transactions
+                    example: 5000
+                  tx_pool_size:
+                    type: integer
+                    description: Number of transactions in mempool
+                    example: 10
+                  version:
+                    type: string
+                    description: Daemon version
+                    example: "1.0.0"
+                  alt_block_count:
+                    type: integer
+                    description: Number of alternative blocks seen
+                    example: 5
+                  outgoing_connections_count:
+                    type: integer
+                    description: Number of outgoing peer connections
+                    example: 8
+                  incoming_connections_count:
+                    type: integer
+                    description: Number of incoming peer connections
+                    example: 3
+                  white_peerlist_size:
+                    type: integer
+                    description: Number of peers in white list
+                    example: 50
+                  grey_peerlist_size:
+                    type: integer
+                    description: Number of peers in grey list
+                    example: 20
+                  last_known_block_index:
+                    type: integer
+                    description: Last known block index
+                    example: 1000
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl http://localhost:21001/info
+
+  /fee:
+    get:
+      tags:
+        - General
+      summary: fee - Get fee information
+      description: |
+        Returns the developer fee address and amount if configured.
+        This fee is applied to certain transactions to support development.
+      operationId: getFee
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  address:
+                    type: string
+                    description: Developer fee address (empty if not set)
+                    example: "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
+                  amount:
+                    type: integer
+                    description: Fee amount in atomic units (0 if not set)
+                    example: 1000
+                  status:
+                    type: string
+                    example: "OK"
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl http://localhost:21001/fee
+
+  /height:
+    get:
+      tags:
+        - General
+      summary: height - Get blockchain height
+      description: |
+        Returns the current blockchain height and network height.
+        Useful for quick sync status checks.
+      operationId: getHeight
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "OK"
+                  height:
+                    type: integer
+                    description: Current local blockchain height
+                    example: 1000
+                  network_height:
+                    type: integer
+                    description: Network height (may differ during sync)
+                    example: 1000
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl http://localhost:21001/height
+
+  /peers:
+    get:
+      tags:
+        - Network
+      summary: peers - Get peer list
+      description: |
+        Returns information about connected peers.
+        Includes both white peers (active) and gray peers (recently seen).
+      operationId: getPeers
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  peers:
+                    type: array
+                    description: List of active (white) peers
+                    items:
+                      type: string
+                      description: Peer address in IP:PORT format
+                      example: "192.168.1.100:21000"
+                  peers_gray:
+                    type: array
+                    description: List of gray peers (recently seen)
+                    items:
+                      type: string
+                      example: "10.0.0.5:21000"
+                  status:
+                    type: string
+                    example: "OK"
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl http://localhost:21001/peers
+
+  /getstakingpool:
+    get:
+      tags:
+        - Staking
+      summary: getstakingpool - Get staking pool information
+      description: |
+        Returns comprehensive information about the staking pool status,
+        including total staked amount, available balance, and staking parameters.
+      operationId: getStakingPool
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "OK"
+                  staking_enabled:
+                    type: boolean
+                    description: Whether staking is currently enabled
+                    example: true
+                  staking_enable_height:
+                    type: integer
+                    description: Block height when staking becomes enabled
+                    example: 100000
+                  current_height:
+                    type: integer
+                    description: Current block height
+                    example: 150000
+                  minimum_stake:
+                    type: integer
+                    description: Minimum amount required to stake (atomic units)
+                    example: 1000000000000
+                  total_staked:
+                    type: integer
+                    description: Total amount staked in the pool (atomic units)
+                    example: 50000000000000
+                  pending_stakes:
+                    type: integer
+                    description: Amount of pending stakes (atomic units)
+                    example: 0
+                  total_pool_balance:
+                    type: integer
+                    description: Total pool balance including rewards (atomic units)
+                    example: 55000000000000
+                  available_balance:
+                    type: integer
+                    description: Available balance for withdrawals (atomic units)
+                    example: 5000000000000
+                  block_reward_rate:
+                    type: integer
+                    description: Percentage of block reward distributed to stakers
+                    example: 30
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl http://localhost:21001/getstakingpool
+
+  /getproposals:
+    get:
+      tags:
+        - Governance
+      summary: getproposals - Get governance proposals
+      description: |
+        Returns governance proposals. Can filter for active proposals only.
+      operationId: getProposals
+      parameters:
+        - name: active_only
+          in: query
+          description: Whether to return only active proposals
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "OK"
+                  proposals:
+                    type: array
+                    description: List of proposals
+                    items:
+                      type: object
+                      properties:
+                        proposal_id:
+                          type: integer
+                          description: Unique proposal identifier
+                          example: 1
+                        title:
+                          type: string
+                          description: Proposal title
+                          example: "Increase block reward"
+                        description:
+                          type: string
+                          description: Proposal description
+                          example: "Proposal to increase block reward by 10%"
+                        creator:
+                          type: string
+                          description: Address of proposal creator
+                          example: "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
+                        creation_height:
+                          type: integer
+                          description: Block height when proposal was created
+                          example: 150000
+                        expiration_height:
+                          type: integer
+                          description: Block height when proposal expires
+                          example: 151000
+                        yes_votes:
+                          type: integer
+                          description: Number of yes votes
+                          example: 100
+                        no_votes:
+                          type: integer
+                          description: Number of no votes
+                          example: 20
+                        total_staked:
+                          type: integer
+                          description: Total amount voting (atomic units)
+                          example: 10000000000000
+                        active:
+                          type: boolean
+                          description: Whether proposal is still active
+                          example: true
+                        passed:
+                          type: boolean
+                          description: Whether proposal has passed
+                          example: false
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl "http://localhost:21001/getproposals?active_only=true"
+
+  /getproposal:
+    get:
+      tags:
+        - Governance
+      summary: getproposal - Get specific proposal details
+      description: |
+        Returns detailed information about a specific governance proposal.
+      operationId: getProposal
+      parameters:
+        - name: proposal_id
+          in: query
+          description: Proposal ID to look up
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "OK"
+                  proposal:
+                    type: object
+                    properties:
+                      proposal_id:
+                        type: integer
+                        example: 1
+                      title:
+                        type: string
+                        example: "Increase block reward"
+                      description:
+                        type: string
+                        example: "Proposal to increase block reward by 10%"
+                      creator:
+                        type: string
+                        example: "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
+                      creation_height:
+                        type: integer
+                        example: 150000
+                      expiration_height:
+                        type: integer
+                        example: 151000
+                      yes_votes:
+                        type: integer
+                        example: 100
+                      no_votes:
+                        type: integer
+                        example: 20
+                      total_staked:
+                        type: integer
+                        example: 10000000000000
+                      active:
+                        type: boolean
+                        example: true
+                      passed:
+                        type: boolean
+                        example: false
+                  voters:
+                    type: array
+                    description: List of addresses that voted
+                    items:
+                      type: string
+        '404':
+          description: Proposal not found
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl "http://localhost:21001/getproposal?proposal_id=1"
+
+  /getvotingpower:
+    get:
+      tags:
+        - Governance
+      summary: getvotingpower - Get voting power for address
+      description: |
+        Returns the voting power of a specific address based on their staked amount.
+        Voting power is proportional to the amount staked.
+      operationId: getVotingPower
+      parameters:
+        - name: address
+          in: query
+          description: Wallet address to check voting power for
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "OK"
+                  address:
+                    type: string
+                    example: "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
+                  voting_power:
+                    type: integer
+                    description: Voting power (based on staked amount)
+                    example: 1000000000000
+                  voting_power_formatted:
+                    type: string
+                    description: Voting power in human-readable format
+                    example: "1000.00000000"
+                  total_staked:
+                    type: integer
+                    description: Total amount staked by this address
+                    example: 1000000000000
+                  total_staked_formatted:
+                    type: string
+                    description: Total staked in human-readable format
+                    example: "1000.00000000"
+        '404':
+          description: Address not found or has no stakes
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl "http://localhost:21001/getvotingpower?address=PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
+
+  /getallstakes:
+    get:
+      tags:
+        - Staking
+      summary: getallstakes - Get all stakes (paginated)
+      description: |
+        Returns all stakes in the system with pagination support.
+      operationId: getAllStakes
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: limit
+          in: query
+          description: Number of stakes per page
+          required: false
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
+            maximum: 1000
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "OK"
+                  stakes:
+                    type: array
+                    description: List of stakes
+                    items:
+                      type: object
+                      properties:
+                        staking_tx_hash:
+                          type: string
+                          description: Staking transaction hash
+                          example: "abc123..."
+                        address:
+                          type: string
+                          description: Staker address
+                          example: "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
+                        amount:
+                          type: integer
+                          description: Staked amount (atomic units)
+                          example: 1000000000000
+                        amount_formatted:
+                          type: string
+                          description: Staked amount in human-readable format
+                          example: "1000.00000000"
+                        unlock_height:
+                          type: integer
+                          description: Block height when stake can be unlocked
+                          example: 160000
+                        pending_rewards:
+                          type: integer
+                          description: Pending rewards (atomic units)
+                          example: 50000000
+                        pending_rewards_formatted:
+                          type: string
+                          description: Pending rewards in human-readable format
+                          example: "0.05000000"
+                  total_stakes:
+                    type: integer
+                    description: Total number of stakes
+                    example: 500
+                  page:
+                    type: integer
+                    description: Current page number
+                    example: 0
+                  limit:
+                    type: integer
+                    description: Number of stakes per page
+                    example: 100
+                  total_staked:
+                    type: integer
+                    description: Total amount staked across all stakes (atomic units)
+                    example: 50000000000000
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl "http://localhost:21001/getallstakes?page=0&limit=100"
+
+  ################################################################################
+  # REST ENDPOINTS - POST
+  ################################################################################
+
+  /sendrawtransaction:
+    post:
+      tags:
+        - Transactions
+      summary: sendrawtransaction - Submit transaction to network
+      description: |
+        Submits a raw transaction (in hex format) to the network.
+        The transaction will be validated and added to the mempool if valid.
+        Requires daemon to be synced.
+      operationId: sendRawTransaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - tx_as_hex
+              properties:
+                tx_as_hex:
+                  type: string
+                  description: Transaction data in hexadecimal format
+                  example: "010201abc..."
+            example:
+              tx_as_hex: "010201abc..."
+      responses:
+        '200':
+          description: Transaction submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: ["OK", "Failed"]
+                  transactionHash:
+                    type: string
+                    description: Transaction hash (if successful)
+                    example: "abc123..."
+                  error:
+                    type: string
+                    description: Error message (if failed)
+                    example: "Transaction fee is too low"
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/sendrawtransaction \
+              -H "Content-Type: application/json" \
+              -d '{"tx_as_hex": "010201abc..."}'
+
+  /getwalletsyncdata:
+    post:
+      tags:
+        - Wallet
+      summary: getwalletsyncdata - Get wallet synchronization data
+      description: |
+        Returns blockchain data optimized for wallet synchronization.
+        This includes blocks, transactions, and checkpoints.
+      operationId: getWalletSyncData
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                blockHashCheckpoints:
+                  type: array
+                  description: Known block hashes to use as checkpoints
+                  items:
+                    type: string
+                  example: ["hash1...", "hash2..."]
+                startHeight:
+                  type: integer
+                  description: Starting block height
+                  default: 0
+                  example: 1000
+                startTimestamp:
+                  type: integer
+                  description: Starting timestamp (Unix epoch)
+                  default: 0
+                  example: 1234567890
+                blockCount:
+                  type: integer
+                  description: Number of blocks to return
+                  default: 100
+                  maximum: 1000
+                  example: 100
+                skipCoinbaseTransactions:
+                  type: boolean
+                  description: Whether to exclude coinbase transactions
+                  default: false
+                  example: false
+            example:
+              startHeight: 1000
+              blockCount: 100
+              skipCoinbaseTransactions: false
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    description: Array of wallet block information
+                  topBlock:
+                    type: object
+                    description: Information about the top block
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/getwalletsyncdata \
+              -H "Content-Type: application/json" \
+              -d '{"startHeight": 1000, "blockCount": 100}'
+
+  /queryblockslite:
+    post:
+      tags:
+        - Advanced
+      summary: queryblockslite - Query blocks (light)
+      description: |
+        Lightweight block querying for wallet synchronization.
+        Returns minimal block information for efficiency.
+      operationId: queryBlocksLite
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - blockIds
+              properties:
+                blockIds:
+                  type: array
+                  description: List of known block hashes
+                  items:
+                    type: string
+            example:
+              blockIds: ["hash1...", "hash2..."]
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  items:
+                    type: array
+                  startHeight:
+                    type: integer
+                  currentHeight:
+                    type: integer
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/queryblockslite \
+              -H "Content-Type: application/json" \
+              -d '{"blockIds": ["hash1...", "hash2..."]}'
+
+  /get_transactions_status:
+    post:
+      tags:
+        - Transactions
+      summary: get_transactions_status - Get transaction status
+      description: |
+        Checks whether transactions are in the mempool or blockchain.
+        Useful for tracking transaction confirmation.
+      operationId: getTransactionsStatus
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - transactionHashes
+              properties:
+                transactionHashes:
+                  type: array
+                  description: List of transaction hashes to check
+                  items:
+                    type: string
+            example:
+              transactionHashes: ["hash1...", "hash2..."]
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  transactionsInPool:
+                    type: array
+                    description: Transactions currently in mempool
+                    items:
+                      type: string
+                  transactionsInBlock:
+                    type: array
+                    description: Transactions confirmed in blocks
+                    items:
+                      type: string
+                  unknownTransactions:
+                    type: array
+                    description: Unknown transactions
+                    items:
+                      type: string
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/get_transactions_status \
+              -H "Content-Type: application/json" \
+              -d '{"transactionHashes": ["hash1...", "hash2..."]}'
+
+  /get_pool_changes_lite:
+    post:
+      tags:
+        - Transactions
+      summary: get_pool_changes_lite - Get pool changes (light)
+      description: |
+        Returns changes to the transaction pool (mempool) since last check.
+        Used for efficient wallet synchronization.
+      operationId: getPoolChangesLite
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - knownPoolTxHashes
+              properties:
+                knownPoolTxHashes:
+                  type: array
+                  description: Transaction hashes known to be in pool
+                  items:
+                    type: string
+            example:
+              knownPoolTxHashes: ["hash1...", "hash2..."]
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  addedTxs:
+                    type: array
+                    description: Newly added transactions
+                  deletedTxs:
+                    type: array
+                    description: Removed transaction hashes
+                    items:
+                      type: string
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/get_pool_changes_lite \
+              -H "Content-Type: application/json" \
+              -d '{"knownPoolTxHashes": ["hash1...", "hash2..."]}'
+
+  /queryblocksdetailed:
+    post:
+      tags:
+        - Advanced
+      summary: queryblocksdetailed - Query blocks (detailed)
+      description: |
+        Detailed block querying with full transaction information.
+        Requires --enable-blockexplorer-detailed flag.
+      operationId: queryBlocksDetailed
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - blockIds
+              properties:
+                blockIds:
+                  type: array
+                  description: List of known block hashes
+                  items:
+                    type: string
+            example:
+              blockIds: ["hash1...", "hash2..."]
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  items:
+                    type: array
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/queryblocksdetailed \
+              -H "Content-Type: application/json" \
+              -d '{"blockIds": ["hash1...", "hash2..."]}'
+
+  /getrawblocks:
+    post:
+      tags:
+        - Advanced
+      summary: getrawblocks - Get raw block data
+      description: |
+        Returns raw binary block data in hex format.
+        Useful for low-level blockchain analysis.
+      operationId: getRawBlocks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - blockIds
+              properties:
+                blockIds:
+                  type: array
+                  description: List of block hashes
+                  items:
+                    type: string
+            example:
+              blockIds: ["hash1..."]
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  blocks:
+                    type: array
+                    items:
+                      type: object
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/getrawblocks \
+              -H "Content-Type: application/json" \
+              -d '{"blockIds": ["hash1..."]}'
+
+  /getrawtransaction:
+    post:
+      tags:
+        - Transactions
+      summary: getrawtransaction - Get raw transaction data
+      description: |
+        Returns raw binary transaction data in hex format.
+      operationId: getRawTransaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - transactionHashes
+              properties:
+                transactionHashes:
+                  type: array
+                  description: List of transaction hashes
+                  items:
+                    type: string
+            example:
+              transactionHashes: ["hash1..."]
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  transactions:
+                    type: array
+                    items:
+                      type: string
+                  missedTransactions:
+                    type: array
+                    items:
+                      type: string
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/getrawtransaction \
+              -H "Content-Type: application/json" \
+              -d '{"transactionHashes": ["hash1..."]}'
+
+  /getutxos:
+    post:
+      tags:
+        - UTXO
+      summary: getutxos - Get multiple UTXOs
+      description: |
+        Retrieves UTXO information for multiple transaction outputs.
+      operationId: getUtxos
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - utxos
+              properties:
+                utxos:
+                  type: array
+                  description: List of UTXO identifiers
+                  items:
+                    type: object
+                    properties:
+                      hash:
+                        type: string
+                        description: Transaction hash
+                      index:
+                        type: integer
+                        description: Output index
+            example:
+              utxos:
+                - hash: "hash1..."
+                  index: 0
+                - hash: "hash2..."
+                  index: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  utxos:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Utxo'
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/getutxos \
+              -H "Content-Type: application/json" \
+              -d '{"utxos": [{"hash": "hash1...", "index": 0}]}'
+
+  /getpendingrewards:
+    post:
+      tags:
+        - Staking
+      summary: getpendingrewards - Get pending staking rewards
+      description: |
+        Returns pending rewards for a staking address.
+      operationId: getPendingRewards
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - address
+              properties:
+                address:
+                  type: string
+                  description: Staking address
+                  example: "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
+            example:
+              address: "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  address:
+                    type: string
+                  pending_rewards:
+                    type: integer
+                    description: Pending reward amount in atomic units
+                    example: 50000000
+                  available_for_withdrawal:
+                    type: integer
+                    description: Amount available for withdrawal
+                    example: 45000000
+                  total_staked:
+                    type: integer
+                    description: Total amount staked
+                    example: 1000000000000
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/getpendingrewards \
+              -H "Content-Type: application/json" \
+              -d '{"address": "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"}'
+
+  /getuserstakes:
+    post:
+      tags:
+        - Staking
+      summary: getuserstakes - Get user stake information
+      description: |
+        Returns detailed information about specific stakes by their transaction hashes.
+      operationId: getUserStakes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - staking_hashes
+              properties:
+                staking_hashes:
+                  type: array
+                  description: List of staking transaction hashes
+                  minItems: 1
+                  items:
+                    type: string
+            example:
+              staking_hashes: ["hash1...", "hash2..."]
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  stake_count:
+                    type: integer
+                    description: Number of stakes found
+                    example: 2
+                  stakes:
+                    type: array
+                    items:
+                      type: object
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/getuserstakes \
+              -H "Content-Type: application/json" \
+              -d '{"staking_hashes": ["hash1...", "hash2..."]}'
+
+  /updatestakingrewards:
+    post:
+      tags:
+        - Staking
+      summary: updatestakingrewards - Update staking rewards (NOT IMPLEMENTED)
+      description: |
+        **WARNING: This endpoint is documented but not currently implemented in the codebase.**
+
+        This endpoint was intended to manually trigger reward calculation for all stakes.
+        Rewards are calculated automatically each block and this endpoint is not functional.
+      deprecated: true
+      operationId: updateStakingRewards
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              example: {}
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                    example: "Staking rewards updated successfully"
+                  current_height:
+                    type: integer
+                    description: Current block height
+                    example: 150000
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/updatestakingrewards \
+              -H "Content-Type: application/json" \
+              -d '{}'
+
+  /getproposals:
+    post:
+      tags:
+        - Governance
+      summary: getproposals - Get governance proposals
+      description: |
+        Returns governance proposals. Can filter for active proposals only.
+      operationId: getProposalsPost
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                active_only:
+                  type: boolean
+                  description: Whether to return only active proposals
+                  default: false
+            example:
+              active_only: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "OK"
+                  proposals:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        proposal_id:
+                          type: integer
+                          example: 1
+                        title:
+                          type: string
+                          example: "Increase block reward"
+                        description:
+                          type: string
+                          example: "Proposal to increase block reward by 10%"
+                        creator:
+                          type: string
+                          example: "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
+                        creation_height:
+                          type: integer
+                          example: 150000
+                        expiration_height:
+                          type: integer
+                          example: 151000
+                        yes_votes:
+                          type: integer
+                          example: 100
+                        no_votes:
+                          type: integer
+                          example: 20
+                        total_staked:
+                          type: integer
+                          example: 10000000000000
+                        active:
+                          type: boolean
+                          example: true
+                        passed:
+                          type: boolean
+                          example: false
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/getproposals \
+              -H "Content-Type: application/json" \
+              -d '{"active_only": true}'
+
+  /getproposal:
+    post:
+      tags:
+        - Governance
+      summary: getproposal - Get specific proposal details
+      description: |
+        Returns detailed information about a specific governance proposal.
+      operationId: getProposalPost
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - proposal_id
+              properties:
+                proposal_id:
+                  type: integer
+                  description: Proposal ID to look up
+            example:
+              proposal_id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "OK"
+                  proposal:
+                    type: object
+                    properties:
+                      proposal_id:
+                        type: integer
+                        example: 1
+                      title:
+                        type: string
+                        example: "Increase block reward"
+                      description:
+                        type: string
+                        example: "Proposal to increase block reward by 10%"
+                      creator:
+                        type: string
+                        example: "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
+                      creation_height:
+                        type: integer
+                        example: 150000
+                      expiration_height:
+                        type: integer
+                        example: 151000
+                      yes_votes:
+                        type: integer
+                        example: 100
+                      no_votes:
+                        type: integer
+                        example: 20
+                      total_staked:
+                        type: integer
+                        example: 10000000000000
+                      active:
+                        type: boolean
+                        example: true
+                      passed:
+                        type: boolean
+                        example: false
+                  voters:
+                    type: array
+                    items:
+                      type: string
+        '404':
+          description: Proposal not found
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/getproposal \
+              -H "Content-Type: application/json" \
+              -d '{"proposal_id": 1}'
+
+  /getnextproposalid:
+    post:
+      tags:
+        - Governance
+      summary: getnextproposalid - Get next proposal ID
+      description: |
+        Returns the ID that will be assigned to the next proposal.
+      operationId: getNextProposalId
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              example: {}
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "OK"
+                  next_proposal_id:
+                    type: integer
+                    description: Next available proposal ID
+                    example: 42
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/getnextproposalid \
+              -H "Content-Type: application/json" \
+              -d '{}'
+
+  /getvotingpower:
+    post:
+      tags:
+        - Governance
+      summary: getvotingpower - Get voting power for address
+      description: |
+        Returns the voting power of a specific address based on their staked amount.
+      operationId: getVotingPowerPost
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - address
+              properties:
+                address:
+                  type: string
+                  description: Wallet address to check voting power for
+            example:
+              address: "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "OK"
+                  address:
+                    type: string
+                    example: "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
+                  voting_power:
+                    type: integer
+                    example: 1000000000000
+                  voting_power_formatted:
+                    type: string
+                    example: "1000.00000000"
+                  total_staked:
+                    type: integer
+                    example: 1000000000000
+                  total_staked_formatted:
+                    type: string
+                    example: "1000.00000000"
+        '404':
+          description: Address not found or has no stakes
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/getvotingpower \
+              -H "Content-Type: application/json" \
+              -d '{
+                "address": "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
+              }'
+
+  /getallstakes:
+    post:
+      tags:
+        - Staking
+      summary: getallstakes - Get all stakes (paginated)
+      description: |
+        Returns all stakes in the system with pagination support.
+      operationId: getAllStakesPost
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                page:
+                  type: integer
+                  description: Page number for pagination
+                  default: 0
+                  minimum: 0
+                limit:
+                  type: integer
+                  description: Number of stakes per page
+                  default: 100
+                  minimum: 1
+                  maximum: 1000
+            example:
+              page: 0
+              limit: 100
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "OK"
+                  stakes:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        staking_tx_hash:
+                          type: string
+                          example: "abc123..."
+                        address:
+                          type: string
+                          example: "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
+                        amount:
+                          type: integer
+                          example: 1000000000000
+                        amount_formatted:
+                          type: string
+                          example: "1000.00000000"
+                        unlock_height:
+                          type: integer
+                          example: 160000
+                        pending_rewards:
+                          type: integer
+                          example: 50000000
+                        pending_rewards_formatted:
+                          type: string
+                          example: "0.05000000"
+                  total_stakes:
+                    type: integer
+                    example: 500
+                  page:
+                    type: integer
+                    example: 0
+                  limit:
+                    type: integer
+                    example: 100
+                  total_staked:
+                    type: integer
+                    example: 50000000000000
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/getallstakes \
+              -H "Content-Type: application/json" \
+              -d '{"page": 0, "limit": 100}'
+
+  ################################################################################
+
+  ################################################################################
+  # JSON-RPC ENDPOINTS
+  # All methods use the /json_rpc endpoint with method name in request body
+  # The paths below (e.g., /json_rpc/getblocktemplate) are for documentation purposes
+  # The actual endpoint is always: POST http://localhost:21001/json_rpc
+  ################################################################################
+
+  /json_rpc/getblocktemplate:
+    post:
+      tags:
+        - Mining
+      summary: getblocktemplate - Get block template for mining
+      description: |
+        **JSON-RPC Method: getblocktemplate**
+
+        **Note:** The actual endpoint is `POST http://localhost:21001/json_rpc` with the method name in the request body.
+
+        Returns a block template that can be used for mining. The template contains all the information needed to construct a new block, including the current difficulty, reserved space for extra nonce, and the miner's wallet address for reward distribution.
+      operationId: jsonrpc_getblocktemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - jsonrpc
+                - method
+                - params
+              properties:
+                jsonrpc:
+                  type: string
+                  default: "2.0"
+                method:
+                  type: string
+                  default: "getblocktemplate"
+                params:
+                  type: object
+                  required:
+                    - wallet_address
+                  properties:
+                    wallet_address:
+                      type: string
+                      description: Miner's wallet address to receive rewards
+                    reserve_size:
+                      type: integer
+                      description: Reserved size in bytes for extra nonce
+                      default: 10
+                id:
+                  type: string
+            example:
+              jsonrpc: "2.0"
+              method: getblocktemplate
+              params:
+                wallet_address: "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
+                reserve_size: 10
+              id: "1"
+      responses:
+        '200':
+          description: Block template retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jsonrpc:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                      blocktemplate_blob:
+                        type: string
+                        description: Block template blob for mining (hex-encoded)
+                      difficulty:
+                        type: integer
+                        description: Current mining difficulty
+                      height:
+                        type: integer
+                        description: Block height for this template
+                      reserved_offset:
+                        type: integer
+                        description: Offset in the blob for extra nonce
+                  id:
+                    type: string
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/json_rpc \
+              -H "Content-Type: application/json" \
+              -d '{
+                "jsonrpc": "2.0",
+                "method": "getblocktemplate",
+                "params": {
+                  "wallet_address": "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa",
+                  "reserve_size": 10
+                },
+                "id": "1"
+              }'
+
+  /json_rpc/submitblock:
+    post:
+      tags:
+        - Mining
+      summary: submitblock - Submit mined block
+      description: |
+        **JSON-RPC Method: submitblock**
+
+        **Note:** The actual endpoint is `POST http://localhost:21001/json_rpc` with the method name in the request body.
+
+        Submit a mined block to the network. After successfully mining a block using the block template, submit the completed block blob to be added to the blockchain.
+      operationId: jsonrpc_submitblock
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - jsonrpc
+                - method
+                - params
+              properties:
+                jsonrpc:
+                  type: string
+                  default: "2.0"
+                method:
+                  type: string
+                  default: "submitblock"
+                params:
+                  type: object
+                  required:
+                    - block_blob
+                  properties:
+                    block_blob:
+                      type: string
+                      description: Complete mined block blob in hex format
+                id:
+                  type: string
+            example:
+              jsonrpc: "2.0"
+              method: submitblock
+              params:
+                block_blob: "0102abc..."
+              id: "1"
+      responses:
+        '200':
+          description: Block submitted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jsonrpc:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                  id:
+                    type: string
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/json_rpc \
+              -H "Content-Type: application/json" \
+              -d '{
+                "jsonrpc": "2.0",
+                "method": "submitblock",
+                "params": {
+                  "block_blob": "0102abc..."
+                },
+                "id": "1"
+              }'
+
+  /json_rpc/getblockcount:
+    post:
+      tags:
+        - Blocks
+      summary: getblockcount - Get total number of blocks
+      description: |
+        **JSON-RPC Method: getblockcount**
+
+        **Note:** The actual endpoint is `POST http://localhost:21001/json_rpc` with the method name in the request body.
+
+        Returns the total number of blocks in the blockchain. This is equivalent to the current blockchain height + 1.
+      operationId: jsonrpc_getblockcount
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - jsonrpc
+                - method
+              properties:
+                jsonrpc:
+                  type: string
+                  default: "2.0"
+                method:
+                  type: string
+                  default: "getblockcount"
+                params:
+                  type: object
+                  example: {}
+                id:
+                  type: string
+            example:
+              jsonrpc: "2.0"
+              method: getblockcount
+              params: {}
+              id: "1"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jsonrpc:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+                        description: Total number of blocks
+                      status:
+                        type: string
+                  id:
+                    type: string
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/json_rpc \
+              -H "Content-Type: application/json" \
+              -d '{
+                "jsonrpc": "2.0",
+                "method": "getblockcount",
+                "params": {},
+                "id": "1"
+              }'
+
+  /json_rpc/getlastblockheader:
+    post:
+      tags:
+        - Blocks
+      summary: getlastblockheader - Get last block header
+      description: |
+        **JSON-RPC Method: getlastblockheader**
+
+        **Note:** The actual endpoint is `POST http://localhost:21001/json_rpc` with the method name in the request body.
+
+        Returns detailed information about the most recent block in the blockchain.
+      operationId: jsonrpc_getlastblockheader
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - jsonrpc
+                - method
+              properties:
+                jsonrpc:
+                  type: string
+                  default: "2.0"
+                method:
+                  type: string
+                  default: "getlastblockheader"
+                params:
+                  type: object
+                id:
+                  type: string
+            example:
+              jsonrpc: "2.0"
+              method: getlastblockheader
+              params: {}
+              id: "1"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jsonrpc:
+                    type: string
+                  result:
+                    $ref: '#/components/schemas/Block'
+                  id:
+                    type: string
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/json_rpc \
+              -H "Content-Type: application/json" \
+              -d '{
+                "jsonrpc": "2.0",
+                "method": "getlastblockheader",
+                "params": {},
+                "id": "1"
+              }'
+
+  /json_rpc/getblockheaderbyhash:
+    post:
+      tags:
+        - Blocks
+      summary: getblockheaderbyhash - Get block header by hash
+      description: |
+        **JSON-RPC Method: getblockheaderbyhash**
+
+        **Note:** The actual endpoint is `POST http://localhost:21001/json_rpc` with the method name in the request body.
+
+        Returns detailed header information for a specific block given its hash.
+      operationId: jsonrpc_getblockheaderbyhash
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - jsonrpc
+                - method
+                - params
+              properties:
+                jsonrpc:
+                  type: string
+                  default: "2.0"
+                method:
+                  type: string
+                  default: "getblockheaderbyhash"
+                params:
+                  type: object
+                  required:
+                    - hash
+                  properties:
+                    hash:
+                      type: string
+                      description: Block hash to look up
+                id:
+                  type: string
+            example:
+              jsonrpc: "2.0"
+              method: getblockheaderbyhash
+              params:
+                hash: "b60abb4fe3e8f8e9a7a3e7f5d5e8e8e9a7a3e7f5d5e8e8e9a7a3e7f5d5e8e8e9"
+              id: "1"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jsonrpc:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                      block_header:
+                        $ref: '#/components/schemas/Block'
+                  id:
+                    type: string
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/json_rpc \
+              -H "Content-Type: application/json" \
+              -d '{
+                "jsonrpc": "2.0",
+                "method": "getblockheaderbyhash",
+                "params": {
+                  "hash": "b60abb4fe3e8f8e9a7a3e7f5d5e8e8e9a7a3e7f5d5e8e8e9a7a3e7f5d5e8e8e9"
+                },
+                "id": "1"
+              }'
+
+  /json_rpc/getblockheaderbyheight:
+    post:
+      tags:
+        - Blocks
+      summary: getblockheaderbyheight - Get block header by height
+      description: |
+        **JSON-RPC Method: getblockheaderbyheight**
+
+        **Note:** The actual endpoint is `POST http://localhost:21001/json_rpc` with the method name in the request body.
+
+        Returns detailed header information for a block at a specific height.
+      operationId: jsonrpc_getblockheaderbyheight
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - jsonrpc
+                - method
+                - params
+              properties:
+                jsonrpc:
+                  type: string
+                  default: "2.0"
+                method:
+                  type: string
+                  default: "getblockheaderbyheight"
+                params:
+                  type: object
+                  required:
+                    - height
+                  properties:
+                    height:
+                      type: integer
+                      description: Block height
+                id:
+                  type: string
+            example:
+              jsonrpc: "2.0"
+              method: getblockheaderbyheight
+              params:
+                height: 1000
+              id: "1"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jsonrpc:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                      block_header:
+                        $ref: '#/components/schemas/Block'
+                  id:
+                    type: string
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/json_rpc \
+              -H "Content-Type: application/json" \
+              -d '{
+                "jsonrpc": "2.0",
+                "method": "getblockheaderbyheight",
+                "params": {
+                  "height": 1000
+                },
+                "id": "1"
+              }'
+
+  /json_rpc/f_blocks_list_json:
+    post:
+      tags:
+        - Blocks
+      summary: f_blocks_list_json - Get block by height
+      description: |
+        **JSON-RPC Method: f_blocks_list_json**
+
+        **Note:** The actual endpoint is `POST http://localhost:21001/json_rpc` with the method name in the request body.
+
+        Returns full block information for a single block specified by height. Requires --enable-blockexplorer flag.
+      operationId: jsonrpc_f_blocks_list_json
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - jsonrpc
+                - method
+                - params
+              properties:
+                jsonrpc:
+                  type: string
+                  default: "2.0"
+                method:
+                  type: string
+                  default: "f_blocks_list_json"
+                params:
+                  type: object
+                  required:
+                    - height
+                  properties:
+                    height:
+                      type: integer
+                      description: Block height to retrieve
+                      minimum: 0
+                id:
+                  type: string
+            example:
+              jsonrpc: "2.0"
+              method: f_blocks_list_json
+              params:
+                height: 100
+              id: "1"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jsonrpc:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                      blocks:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Block'
+                  id:
+                    type: string
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/json_rpc \
+              -H "Content-Type: application/json" \
+              -d '{
+                "jsonrpc": "2.0",
+                "method": "f_blocks_list_json",
+                "params": {
+                  "height": 100
+                },
+                "id": "1"
+              }'
+
+  /json_rpc/f_block_json:
+    post:
+      tags:
+        - Blocks
+      summary: f_block_json - Get full block details
+      description: |
+        **JSON-RPC Method: f_block_json**
+
+        **Note:** The actual endpoint is `POST http://localhost:21001/json_rpc` with the method name in the request body.
+
+        Returns complete block information including all transactions with their types (COINBASE, TRANSFER, STAKING). Requires --enable-blockexplorer flag.
+      operationId: jsonrpc_f_block_json
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - jsonrpc
+                - method
+                - params
+              properties:
+                jsonrpc:
+                  type: string
+                  default: "2.0"
+                method:
+                  type: string
+                  default: "f_block_json"
+                params:
+                  type: object
+                  required:
+                    - hash
+                  properties:
+                    hash:
+                      type: string
+                      description: Block hash to retrieve
+                id:
+                  type: string
+            example:
+              jsonrpc: "2.0"
+              method: f_block_json
+              params:
+                hash: "b60abb4fe3e8f8e9a7a3e7f5d5e8e8e9a7a3e7f5d5e8e8e9a7a3e7f5d5e8e8e9"
+              id: "1"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jsonrpc:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                      block:
+                        $ref: '#/components/schemas/Block'
+                  id:
+                    type: string
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/json_rpc \
+              -H "Content-Type: application/json" \
+              -d '{
+                "jsonrpc": "2.0",
+                "method": "f_block_json",
+                "params": {
+                  "hash": "b60abb4fe3e8f8e9a7a3e7f5d5e8e8e9a7a3e7f5d5e8e8e9a7a3e7f5d5e8e8e9"
+                },
+                "id": "1"
+              }'
+
+  /json_rpc/f_transaction_json:
+    post:
+      tags:
+        - Transactions
+      summary: f_transaction_json - Get transaction details
+      description: |
+        **JSON-RPC Method: f_transaction_json**
+
+        **Note:** The actual endpoint is `POST http://localhost:21001/json_rpc` with the method name in the request body.
+
+        Returns complete transaction information including inputs, outputs, addresses, and UTXO references. Requires --enable-blockexplorer flag.
+      operationId: jsonrpc_f_transaction_json
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - jsonrpc
+                - method
+                - params
+              properties:
+                jsonrpc:
+                  type: string
+                  default: "2.0"
+                method:
+                  type: string
+                  default: "f_transaction_json"
+                params:
+                  type: object
+                  required:
+                    - hash
+                  properties:
+                    hash:
+                      type: string
+                      description: Transaction hash to retrieve
+                id:
+                  type: string
+            example:
+              jsonrpc: "2.0"
+              method: f_transaction_json
+              params:
+                hash: "a7b3c8d4e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8"
+              id: "1"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jsonrpc:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                      transaction:
+                        $ref: '#/components/schemas/TransactionDetails'
+                  id:
+                    type: string
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/json_rpc \
+              -H "Content-Type: application/json" \
+              -d '{
+                "jsonrpc": "2.0",
+                "method": "f_transaction_json",
+                "params": {
+                  "hash": "a7b3c8d4e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8"
+                },
+                "id": "1"
+              }'
+
+  /json_rpc/f_on_transactions_pool_json:
+    post:
+      tags:
+        - Transactions
+      summary: f_on_transactions_pool_json - Get mempool transactions
+      description: |
+        **JSON-RPC Method: f_on_transactions_pool_json**
+
+        **Note:** The actual endpoint is `POST http://localhost:21001/json_rpc` with the method name in the request body.
+
+        Returns all transactions currently in the memory pool (mempool). Requires --enable-blockexplorer flag.
+      operationId: jsonrpc_f_on_transactions_pool_json
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - jsonrpc
+                - method
+              properties:
+                jsonrpc:
+                  type: string
+                  default: "2.0"
+                method:
+                  type: string
+                  default: "f_on_transactions_pool_json"
+                params:
+                  type: object
+                  example: {}
+                id:
+                  type: string
+            example:
+              jsonrpc: "2.0"
+              method: f_on_transactions_pool_json
+              params: {}
+              id: "1"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jsonrpc:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                      transactions:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/MempoolTransaction'
+                  id:
+                    type: string
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/json_rpc \
+              -H "Content-Type: application/json" \
+              -d '{
+                "jsonrpc": "2.0",
+                "method": "f_on_transactions_pool_json",
+                "params": {},
+                "id": "1"
+              }'
+
+  /json_rpc/richlist:
+    post:
+      tags:
+        - Wallet
+      summary: richlist - Get richest addresses
+      description: |
+        **JSON-RPC Method: richlist**
+
+        **Note:** The actual endpoint is `POST http://localhost:21001/json_rpc` with the method name in the request body.
+
+        Returns a list of the richest addresses in the blockchain. Requires --enable-blockexplorer flag.
+      operationId: jsonrpc_richlist
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - jsonrpc
+                - method
+              properties:
+                jsonrpc:
+                  type: string
+                  default: "2.0"
+                method:
+                  type: string
+                  default: "richlist"
+                params:
+                  type: object
+                  example: {}
+                id:
+                  type: string
+            example:
+              jsonrpc: "2.0"
+              method: richlist
+              params: {}
+              id: "1"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jsonrpc:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                      richlist:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            address:
+                              type: string
+                              description: Wallet address
+                            balance:
+                              type: integer
+                              description: Balance in atomic units
+                            balance_formatted:
+                              type: string
+                              description: Balance in human-readable format
+                  id:
+                    type: string
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/json_rpc \
+              -H "Content-Type: application/json" \
+              -d '{
+                "jsonrpc": "2.0",
+                "method": "richlist",
+                "params": {},
+                "id": "1"
+              }'
+
+  /json_rpc/getwalletdetails:
+    post:
+      tags:
+        - Wallet
+      summary: getwalletdetails - Get wallet details
+      description: |
+        **JSON-RPC Method: getwalletdetails**
+
+        **Note:** The actual endpoint is `POST http://localhost:21001/json_rpc` with the method name in the request body.
+
+        Returns comprehensive wallet information including balance, transaction history, and address details. Requires --enable-blockexplorer flag.
+      operationId: jsonrpc_getwalletdetails
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - jsonrpc
+                - method
+                - params
+              properties:
+                jsonrpc:
+                  type: string
+                  default: "2.0"
+                method:
+                  type: string
+                  default: "getwalletdetails"
+                params:
+                  type: object
+                  required:
+                    - address
+                  properties:
+                    address:
+                      type: string
+                      description: Wallet address to look up
+                    page:
+                      type: integer
+                      description: Page number for pagination
+                      default: 0
+                      minimum: 0
+                    limit:
+                      type: integer
+                      description: Number of transactions per page
+                      default: 100
+                      minimum: 1
+                      maximum: 1000
+                id:
+                  type: string
+            example:
+              jsonrpc: "2.0"
+              method: getwalletdetails
+              params:
+                address: "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
+                page: 0
+                limit: 100
+              id: "1"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jsonrpc:
+                    type: string
+                  result:
+                    $ref: '#/components/schemas/WalletDetails'
+                  id:
+                    type: string
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/json_rpc \
+              -H "Content-Type: application/json" \
+              -d '{
+                "jsonrpc": "2.0",
+                "method": "getwalletdetails",
+                "params": {
+                  "address": "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa",
+                  "page": 0,
+                  "limit": 100
+                },
+                "id": "1"
+              }'
+
+  /json_rpc/getutxo:
+    post:
+      tags:
+        - UTXO
+      summary: getutxo - Get UTXO details
+      description: |
+        **JSON-RPC Method: getutxo**
+
+        **Note:** The actual endpoint is `POST http://localhost:21001/json_rpc` with the method name in the request body.
+
+        Returns detailed information about a specific Unspent Transaction Output (UTXO). Requires --enable-blockexplorer flag.
+      operationId: jsonrpc_getutxo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - jsonrpc
+                - method
+                - params
+              properties:
+                jsonrpc:
+                  type: string
+                  default: "2.0"
+                method:
+                  type: string
+                  default: "getutxo"
+                params:
+                  type: object
+                  required:
+                    - transaction_hash
+                    - output_index
+                  properties:
+                    transaction_hash:
+                      type: string
+                      description: Hash of transaction that created this UTXO
+                    output_index:
+                      type: integer
+                      description: Output index in the transaction
+                      minimum: 0
+                id:
+                  type: string
+            example:
+              jsonrpc: "2.0"
+              method: getutxo
+              params:
+                transaction_hash: "a7b3c8d4e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8"
+                output_index: 0
+              id: "1"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jsonrpc:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                      utxo:
+                        $ref: '#/components/schemas/Utxo'
+                  id:
+                    type: string
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/json_rpc \
+              -H "Content-Type: application/json" \
+              -d '{
+                "jsonrpc": "2.0",
+                "method": "getutxo",
+                "params": {
+                  "transaction_hash": "a7b3c8d4e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8",
+                  "output_index": 0
+                },
+                "id": "1"
+              }'
+
+  /json_rpc/getutxosfortx:
+    post:
+      tags:
+        - UTXO
+      summary: getutxosfortx - Get UTXOs for transaction
+      description: |
+        **JSON-RPC Method: getutxosfortx**
+
+        **Note:** The actual endpoint is `POST http://localhost:21001/json_rpc` with the method name in the request body.
+
+        Returns all UTXOs (outputs) created by a specific transaction. Requires --enable-blockexplorer flag.
+      operationId: jsonrpc_getutxosfortx
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - jsonrpc
+                - method
+                - params
+              properties:
+                jsonrpc:
+                  type: string
+                  default: "2.0"
+                method:
+                  type: string
+                  default: "getutxosfortx"
+                params:
+                  type: object
+                  required:
+                    - transaction_hash
+                  properties:
+                    transaction_hash:
+                      type: string
+                      description: Transaction hash to look up
+                id:
+                  type: string
+            example:
+              jsonrpc: "2.0"
+              method: getutxosfortx
+              params:
+                transaction_hash: "a7b3c8d4e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8"
+              id: "1"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jsonrpc:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                      utxos:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Utxo'
+                  id:
+                    type: string
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/json_rpc \
+              -H "Content-Type: application/json" \
+              -d '{
+                "jsonrpc": "2.0",
+                "method": "getutxosfortx",
+                "params": {
+                  "transaction_hash": "a7b3c8d4e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8"
+                },
+                "id": "1"
+              }'
+
+  /json_rpc/getgovernanceproposals:
+    post:
+      tags:
+        - Governance
+      summary: getgovernanceproposals - Get governance proposals
+      description: |
+        **JSON-RPC Method: getgovernanceproposals**
+
+        **Note:** The actual endpoint is `POST http://localhost:21001/json_rpc` with the method name in the request body.
+
+        Returns governance proposals. Can filter for active proposals only.
+      operationId: jsonrpc_getgovernanceproposals
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - jsonrpc
+                - method
+              properties:
+                jsonrpc:
+                  type: string
+                  default: "2.0"
+                method:
+                  type: string
+                  default: "getgovernanceproposals"
+                params:
+                  type: object
+                  properties:
+                    active_only:
+                      type: boolean
+                      description: Whether to return only active proposals
+                      default: false
+                id:
+                  type: string
+            example:
+              jsonrpc: "2.0"
+              method: getgovernanceproposals
+              params:
+                active_only: true
+              id: "1"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jsonrpc:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                      proposals:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            proposal_id:
+                              type: integer
+                            title:
+                              type: string
+                            description:
+                              type: string
+                            creator:
+                              type: string
+                            creation_height:
+                              type: integer
+                            expiration_height:
+                              type: integer
+                            yes_votes:
+                              type: integer
+                            no_votes:
+                              type: integer
+                            total_staked:
+                              type: integer
+                            active:
+                              type: boolean
+                            passed:
+                              type: boolean
+                  id:
+                    type: string
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/json_rpc \
+              -H "Content-Type: application/json" \
+              -d '{
+                "jsonrpc": "2.0",
+                "method": "getgovernanceproposals",
+                "params": {
+                  "active_only": true
+                },
+                "id": "1"
+              }'
+
+  /json_rpc/getproposaldetails:
+    post:
+      tags:
+        - Governance
+      summary: getproposaldetails - Get proposal details
+      description: |
+        **JSON-RPC Method: getproposaldetails**
+
+        **Note:** The actual endpoint is `POST http://localhost:21001/json_rpc` with the method name in the request body.
+
+        Returns detailed information about a specific governance proposal.
+      operationId: jsonrpc_getproposaldetails
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - jsonrpc
+                - method
+                - params
+              properties:
+                jsonrpc:
+                  type: string
+                  default: "2.0"
+                method:
+                  type: string
+                  default: "getproposaldetails"
+                params:
+                  type: object
+                  required:
+                    - proposal_id
+                  properties:
+                    proposal_id:
+                      type: integer
+                      description: Proposal ID to look up
+                id:
+                  type: string
+            example:
+              jsonrpc: "2.0"
+              method: getproposaldetails
+              params:
+                proposal_id: 1
+              id: "1"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jsonrpc:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                      proposal:
+                        type: object
+                        properties:
+                          proposal_id:
+                            type: integer
+                          title:
+                            type: string
+                          description:
+                            type: string
+                          creator:
+                            type: string
+                          creation_height:
+                            type: integer
+                          expiration_height:
+                            type: integer
+                          yes_votes:
+                            type: integer
+                          no_votes:
+                            type: integer
+                          total_staked:
+                            type: integer
+                          active:
+                            type: boolean
+                          passed:
+                            type: boolean
+                      voters:
+                        type: array
+                        items:
+                          type: string
+                  id:
+                    type: string
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/json_rpc \
+              -H "Content-Type: application/json" \
+              -d '{
+                "jsonrpc": "2.0",
+                "method": "getproposaldetails",
+                "params": {
+                  "proposal_id": 1
+                },
+                "id": "1"
+              }'
+
+            # getlastblockheader - Get last block header
+            curl -X POST http://localhost:21001/json_rpc \
+              -H "Content-Type: application/json" \
+              -d '{
+                "jsonrpc": "2.0",
+                "method": "getlastblockheader",
+                "params": {},
+                "id": "1"
+              }'
+
+        - lang: "curl"
+          source: |
+            # getblockheaderbyhash - Get block header by hash
+            curl -X POST http://localhost:21001/json_rpc \
+              -H "Content-Type: application/json" \
+              -d '{
+                "jsonrpc": "2.0",
+                "method": "getblockheaderbyhash",
+                "params": {
+                  "hash": "b60abb4fe3e8f8e9a7a3e7f5d5e8e8e9a7a3e7f5d5e8e8e9a7a3e7f5d5e8e8e9"
+                },
+                "id": "1"
+              }'
+
+        - lang: "curl"
+          source: |
+            # getblockheaderbyheight - Get block header by height
+            curl -X POST http://localhost:21001/json_rpc \
+              -H "Content-Type: application/json" \
+              -d '{
+                "jsonrpc": "2.0",
+                "method": "getblockheaderbyheight",
+                "params": {
+                  "height": 1000
+                },
+                "id": "1"
+              }'
+
+        - lang: "curl"
+          source: |
+            # f_blocks_list_json - Get block by height
+            curl -X POST http://localhost:21001/json_rpc \
+              -H "Content-Type: application/json" \
+              -d '{
+                "jsonrpc": "2.0",
+                "method": "f_blocks_list_json",
+                "params": {
+                  "height": 100
+                },
+                "id": "1"
+              }'
+
+        - lang: "curl"
+          source: |
+            # f_block_json - Get full block details
+            curl -X POST http://localhost:21001/json_rpc \
+              -H "Content-Type: application/json" \
+              -d '{
+                "jsonrpc": "2.0",
+                "method": "f_block_json",
+                "params": {
+                  "hash": "b60abb4fe3e8f8e9a7a3e7f5d5e8e8e9a7a3e7f5d5e8e8e9a7a3e7f5d5e8e8e9"
+                },
+                "id": "1"
+              }'
+
+        - lang: "curl"
+          source: |
+            # f_transaction_json - Get transaction details
+            curl -X POST http://localhost:21001/json_rpc \
+              -H "Content-Type: application/json" \
+              -d '{
+                "jsonrpc": "2.0",
+                "method": "f_transaction_json",
+                "params": {
+                  "hash": "a7b3c8d4e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8"
+                },
+                "id": "1"
+              }'
+
+        - lang: "curl"
+          source: |
+            # f_on_transactions_pool_json - Get mempool transactions
+            curl -X POST http://localhost:21001/json_rpc \
+              -H "Content-Type: application/json" \
+              -d '{
+                "jsonrpc": "2.0",
+                "method": "f_on_transactions_pool_json",
+                "params": {},
+                "id": "1"
+              }'
+
+        - lang: "curl"
+          source: |
+            # getwalletdetails - Get wallet details
+            curl -X POST http://localhost:21001/json_rpc \
+              -H "Content-Type: application/json" \
+              -d '{
+                "jsonrpc": "2.0",
+                "method": "getwalletdetails",
+                "params": {
+                  "address": "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa",
+                  "page": 0,
+                  "limit": 100
+                },
+                "id": "1"
+              }'
+
+        - lang: "curl"
+          source: |
+            # richlist - Get richest addresses
+            curl -X POST http://localhost:21001/json_rpc \
+              -H "Content-Type: application/json" \
+              -d '{
+                "jsonrpc": "2.0",
+                "method": "richlist",
+                "params": {},
+                "id": "1"
+              }'
+
+        - lang: "curl"
+          source: |
+            # getutxo - Get UTXO details
+            curl -X POST http://localhost:21001/json_rpc \
+              -H "Content-Type: application/json" \
+              -d '{
+                "jsonrpc": "2.0",
+                "method": "getutxo",
+                "params": {
+                  "transaction_hash": "a7b3c8d4e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8",
+                  "output_index": 0
+                },
+                "id": "1"
+              }'
+
+        - lang: "curl"
+          source: |
+            # getutxosfortx - Get UTXOs for transaction
+            curl -X POST http://localhost:21001/json_rpc \
+              -H "Content-Type: application/json" \
+              -d '{
+                "jsonrpc": "2.0",
+                "method": "getutxosfortx",
+                "params": {
+                  "transaction_hash": "a7b3c8d4e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8"
+                },
+                "id": "1"
+              }'
+
+  ################################################################################
+  # SCHEMA DEFINITIONS
+  ################################################################################
+
+components:
+  schemas:
+    Block:
+      type: object
+      description: Block information including header and transactions
+      properties:
+        major_version:
+          type: integer
+          description: Major block version
+          example: 1
+        minor_version:
+          type: integer
+          description: Minor block version
+          example: 0
+        timestamp:
+          type: integer
+          description: Unix timestamp when block was created
+          example: 1234567890
+        prev_hash:
+          type: string
+          description: Hash of the previous block
+          example: "0000000000000000000000000000000000000000000000000000000000000000"
+        nonce:
+          type: integer
+          description: Nonce used for mining
+          example: 12345
+        orphan_status:
+          type: boolean
+          description: Whether this block is an orphan (not part of main chain)
+          example: false
+        height:
+          type: integer
+          description: Block height
+          example: 1000
+        hash:
+          type: string
+          description: Block hash
+          example: "b60abb4fe3e8f8e9a7a3e7f5d5e8e8e9a7a3e7f5d5e8e8e9a7a3e7f5d5e8e8e9"
+        difficulty:
+          type: integer
+          description: Mining difficulty for this block
+          example: 10000
+        reward:
+          type: integer
+          description: Block reward in atomic units
+          example: 400000000
+        blockSize:
+          type: integer
+          description: Block size in bytes
+          example: 5000
+        transactions:
+          type: array
+          description: Transactions in this block (excluding coinbase)
+          items:
+            $ref: '#/components/schemas/Transaction'
+        totalFeeAmount:
+          type: integer
+          description: Total transaction fees in this block
+          example: 10000
+        coinbase_tx:
+          $ref: '#/components/schemas/Transaction'
+          description: Coinbase transaction (mining reward)
+
+    Transaction:
+      type: object
+      description: Basic transaction information
+      properties:
+        hash:
+          type: string
+          description: Transaction hash
+          example: "a7b3c8d4e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8"
+        fee:
+          type: integer
+          description: Transaction fee in atomic units
+          example: 10000
+        amount_out:
+          type: integer
+          description: Total output amount in atomic units
+          example: 100000000000
+        size:
+          type: integer
+          description: Transaction size in bytes
+          example: 500
+        type:
+          type: string
+          description: Transaction type
+          enum:
+            - COINBASE
+            - TRANSFER
+            - STAKING
+          example: "TRANSFER"
+        unlock_time:
+          type: integer
+          description: Unix timestamp or block height when transaction unlocks
+          example: 0
+
+    TransactionDetails:
+      type: object
+      description: Complete transaction details including inputs and outputs
+      properties:
+        hash:
+          type: string
+          description: Transaction hash
+          example: "a7b3c8d4e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8"
+        block_hash:
+          type: string
+          description: Hash of block containing this transaction
+          example: "b60abb4fe3e8f8e9a7a3e7f5d5e8e8e9a7a3e7f5d5e8e8e9a7a3e7f5d5e8e8e9"
+        block_timestamp:
+          type: integer
+          description: Timestamp of block containing this transaction
+          example: 1234567890
+        block_height:
+          type: integer
+          description: Height of block containing this transaction
+          example: 1000
+        unlock_time:
+          type: integer
+          description: Unix timestamp or block height when outputs unlock
+          example: 0
+        fee:
+          type: integer
+          description: Transaction fee in atomic units
+          example: 10000
+        fee_formatted:
+          type: string
+          description: Transaction fee in human-readable format
+          example: "0.00010000"
+        amount_in:
+          type: integer
+          description: Total input amount in atomic units
+          example: 100000000000
+        amount_out:
+          type: integer
+          description: Total output amount in atomic units
+          example: 99990000000
+        mixin:
+          type: integer
+          description: Mixin count (0 for transparent blockchain)
+          example: 0
+        type:
+          type: string
+          description: Transaction type
+          enum:
+            - COINBASE
+            - TRANSFER
+            - STAKING
+          example: "TRANSFER"
+        inputs:
+          type: array
+          description: Input references (UTXOs being spent)
+          items:
+            type: object
+            properties:
+              amount:
+                type: integer
+                description: Input amount in atomic units
+                example: 50000000000
+              amount_formatted:
+                type: string
+                description: Input amount in human-readable format
+                example: "50.00000000"
+              spending:
+                type: object
+                description: UTXO reference being spent
+                properties:
+                  transaction_hash:
+                    type: string
+                    description: Hash of transaction that created this UTXO
+                    example: "c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2"
+                  output_index:
+                    type: integer
+                    description: Output index in that transaction
+                    example: 0
+              from_address:
+                type: string
+                description: Address that received this UTXO (sender)
+                example: "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
+        outputs:
+          type: array
+          description: Output details
+          items:
+            type: object
+            properties:
+              index:
+                type: integer
+                description: Output index in this transaction
+                example: 0
+              address:
+                type: string
+                description: Recipient address
+                example: "PAS1abc..."
+              amount:
+                type: integer
+                description: Output amount in atomic units
+                example: 99990000000
+              amount_formatted:
+                type: string
+                description: Output amount in human-readable format
+                example: "99.99000000"
+
+    MempoolTransaction:
+      type: object
+      description: Transaction in memory pool (unconfirmed)
+      properties:
+        hash:
+          type: string
+          description: Transaction hash
+          example: "a7b3c8d4e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8"
+        fee:
+          type: integer
+          description: Transaction fee in atomic units
+          example: 10000
+        fee_formatted:
+          type: string
+          description: Transaction fee in human-readable format
+          example: "0.00010000"
+        amount_in:
+          type: integer
+          description: Total input amount in atomic units
+          example: 100000000000
+        amount_out:
+          type: integer
+          description: Total output amount in atomic units
+          example: 99990000000
+        size:
+          type: integer
+          description: Transaction size in bytes
+          example: 500
+        unlock_time:
+          type: integer
+          description: Unix timestamp or block height when outputs unlock
+          example: 0
+        type:
+          type: string
+          description: Transaction type
+          enum:
+            - TRANSFER
+            - STAKING
+          example: "TRANSFER"
+        outputs:
+          type: array
+          description: Output details
+          items:
+            type: object
+            properties:
+              index:
+                type: integer
+                description: Output index
+                example: 0
+              address:
+                type: string
+                description: Recipient address
+                example: "PAS1abc..."
+              amount:
+                type: integer
+                description: Output amount in atomic units
+                example: 99990000000
+              amount_formatted:
+                type: string
+                description: Output amount in human-readable format
+                example: "99.99000000"
+        inputs:
+          type: array
+          description: Input references (UTXOs being spent)
+          items:
+            type: object
+            properties:
+              amount:
+                type: integer
+                description: Input amount in atomic units
+                example: 50000000000
+              amount_formatted:
+                type: string
+                description: Input amount in human-readable format
+                example: "50.00000000"
+              spending:
+                type: object
+                description: UTXO reference being spent
+                properties:
+                  transaction_hash:
+                    type: string
+                    description: Hash of transaction that created this UTXO
+                    example: "c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2"
+                  output_index:
+                    type: integer
+                    description: Output index in that transaction
+                    example: 0
+              from_address:
+                type: string
+                description: Address that received this UTXO (sender)
+                example: "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
+        mixin:
+          type: integer
+          description: Mixin count (always 0 for transparent blockchain)
+          example: 0
+
+    WalletDetails:
+      type: object
+      description: Complete wallet information including balance and history
+      properties:
+        status:
+          type: string
+          example: "OK"
+        address:
+          type: string
+          description: Wallet address
+          example: "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
+        total_balance:
+          type: integer
+          description: Current balance in atomic units
+          example: 75996000000
+        total_balance_formatted:
+          type: string
+          description: Current balance in human-readable format
+          example: "759.96000000"
+        total_incoming:
+          type: integer
+          description: Total amount received in atomic units
+          example: 100000000000
+        total_incoming_formatted:
+          type: string
+          description: Total amount received in human-readable format
+          example: "1000.00000000"
+        total_outgoing:
+          type: integer
+          description: Total amount sent in atomic units
+          example: 24004000000
+        total_outgoing_formatted:
+          type: string
+          description: Total amount sent in human-readable format
+          example: "240.04000000"
+        total_transactions:
+          type: integer
+          description: Total number of transactions
+          example: 42
+        first_tx_timestamp:
+          type: integer
+          description: Unix timestamp of first transaction
+          example: 1234567890
+        last_tx_timestamp:
+          type: integer
+          description: Unix timestamp of last transaction
+          example: 1234599999
+        transactions:
+          type: array
+          description: Transaction history
+          items:
+            type: object
+            properties:
+              transactionHash:
+                type: string
+                description: Transaction hash
+                example: "a7b3c8d4e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8"
+              blockNumber:
+                type: integer
+                description: Block height
+                example: 1000
+              blockHash:
+                type: string
+                description: Block hash
+                example: "b60abb4fe3e8f8e9a7a3e7f5d5e8e8e9a7a3e7f5d5e8e8e9a7a3e7f5d5e8e8e9"
+              amount:
+                type: integer
+                description: Transaction amount in atomic units (positive for incoming, negative for outgoing)
+                example: 1000000000
+              type:
+                type: string
+                description: Transaction type
+                enum:
+                  - MINING
+                  - INCOMING
+                  - OUTGOING
+                  - STAKING
+                  - STAKE_DEPOSIT
+                  - STAKE_UNLOCK
+                example: "INCOMING"
+              balanceAfter:
+                type: integer
+                description: Wallet balance after this transaction
+                example: 75996000000
+              timestamp:
+                type: integer
+                description: Transaction timestamp
+                example: 1234567890
+              unlockTime:
+                type: integer
+                description: Unix timestamp or block height when funds unlock
+                example: 0
+              fee:
+                type: integer
+                description: Transaction fee in atomic units
+                example: 10000
+              fee_formatted:
+                type: string
+                description: Transaction fee in human-readable format
+                example: "0.00010000"
+              fromAddresses:
+                type: array
+                description: Source addresses (for OUTGOING transactions)
+                items:
+                  type: string
+                  example: "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
+              toAddresses:
+                type: array
+                description: Destination addresses (for INCOMING transactions)
+                items:
+                  type: string
+                  example: "PAS1abc..."
+
+    Utxo:
+      type: object
+      description: Unspent Transaction Output details
+      properties:
+        key_image:
+          type: string
+          description: Key image for this UTXO (used to track if spent)
+          example: "123abc..."
+        transaction_hash:
+          type: string
+          description: Hash of transaction that created this UTXO
+          example: "def456..."
+        output_index:
+          type: integer
+          description: Output index in the transaction
+          example: 0
+        amount:
+          type: integer
+          description: UTXO amount in atomic units
+          example: 100000000000
+        amount_formatted:
+          type: string
+          description: UTXO amount in human-readable format
+          example: "1000.00000000"
+        unlock_time:
+          type: integer
+          description: Unix timestamp or block height when UTXO unlocks
+          example: 0
+        address:
+          type: string
+          description: Owner address
+          example: "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
+        spent:
+          type: boolean
+          description: Whether this UTXO has been spent
+          example: false
+        spent_by:
+          type: string
+          description: Hash of transaction that spent this UTXO (if spent)
+          example: "a7b3c8d4e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8"
+        spent_height:
+          type: integer
+          description: Block height where this UTXO was spent (if spent)
+          example: 1050
+        block_height:
+          type: integer
+          description: Block height where this UTXO was created
+          example: 1000
