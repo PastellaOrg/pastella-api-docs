@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>{{title}}</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="/logo.png" />
+    <style>
+      body, #redoc-container {
+        background-color: #141414;
+        color: #e4e4e7;
+      }
+
+      /* Property names like "jsonrpc", "status" etc */
+      [class*="property-name"], [class*="PropertyName"] {
+        color: #e4e4e7 !important;
+      }
+
+      /* "Default: " label and default values */
+      [class*="default"], [class*="Default"] {
+        color: #a1a1aa !important;
+      }
+
+      /* "Request Body schema", "Response Schema" headings */
+      [class*="OperationTitle"], [class*="HttpVerb"], h2, h3, h5 {
+        color: #e4e4e7 !important;
+      }
+
+      /* Schema description text */
+      [class*="description"], [class*="Description"] {
+        color: #a1a1aa !important;
+      }
+
+      /* Tab buttons: "Request samples", "Response samples" selected/unselected */
+      [class*="tab-header"], [class*="Tab"] {
+        background-color: #27272a !important;
+        color: #e4e4e7 !important;
+      }
+
+      [class*="tab-header"][class*="active"],
+      [class*="Tab"][class*="active"] {
+        background-color: #3f3f46 !important;
+        color: #ffffff !important;
+      }
+
+      /* General text fallback inside the main content area */
+      .redoc-wrap p, .redoc-wrap span, .redoc-wrap td, .redoc-wrap li {
+        color: inherit;
+      }
+
+      span.operation-type.get {
+        background-color: #0ea5e9 !important;
+        color: #ffffff !important;
+      }
+
+      span.operation-type.post {
+        background-color: #22c55e !important;
+        color: #ffffff !important;
+      }
+
+      span.operation-type.put {
+        background-color: #f59e0b !important;
+        color: #ffffff !important;
+      }
+
+      span.operation-type.delete {
+        background-color: #ef4444 !important;
+        color: #ffffff !important;
+      }
+
+      span.operation-type.patch {
+        background-color: #a78bfa !important;
+        color: #ffffff !important;
+      }
+    </style>
+    {{{redocHead}}}
+  </head>
+  <body>
+    {{{redocHTML}}}
+  </body>
+</html>

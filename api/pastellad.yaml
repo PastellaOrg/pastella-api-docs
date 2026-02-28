@@ -379,6 +379,81 @@ paths:
         - lang: "curl"
           source: |
             curl "http://localhost:21001/getproposals?active_only=true"
+    post:
+      tags:
+        - Governance
+      summary: getproposals - Get governance proposals (POST)
+      description: |
+        Returns governance proposals. Can filter for active proposals only.
+      operationId: getProposalsPost
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                active_only:
+                  type: boolean
+                  description: Whether to return only active proposals
+                  default: false
+            example:
+              active_only: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "OK"
+                  proposals:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        proposal_id:
+                          type: integer
+                          example: 1
+                        title:
+                          type: string
+                          example: "Increase block reward"
+                        description:
+                          type: string
+                          example: "Proposal to increase block reward by 10%"
+                        creator:
+                          type: string
+                          example: "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
+                        creation_height:
+                          type: integer
+                          example: 150000
+                        expiration_height:
+                          type: integer
+                          example: 151000
+                        yes_votes:
+                          type: integer
+                          example: 100
+                        no_votes:
+                          type: integer
+                          example: 20
+                        total_staked:
+                          type: integer
+                          example: 10000000000000
+                        active:
+                          type: boolean
+                          example: true
+                        passed:
+                          type: boolean
+                          example: false
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/getproposals \
+              -H "Content-Type: application/json" \
+              -d '{"active_only": true}'
 
   /getproposal:
     get:
@@ -453,6 +528,86 @@ paths:
         - lang: "curl"
           source: |
             curl "http://localhost:21001/getproposal?proposal_id=1"
+    post:
+      tags:
+        - Governance
+      summary: getproposal - Get specific proposal details (POST)
+      description: |
+        Returns detailed information about a specific governance proposal.
+      operationId: getProposalPost
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - proposal_id
+              properties:
+                proposal_id:
+                  type: integer
+                  description: Proposal ID to look up
+              example:
+                proposal_id: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "OK"
+                  proposal:
+                    type: object
+                    properties:
+                      proposal_id:
+                        type: integer
+                        example: 1
+                      title:
+                        type: string
+                        example: "Increase block reward"
+                      description:
+                        type: string
+                        example: "Proposal to increase block reward by 10%"
+                      creator:
+                        type: string
+                        example: "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
+                      creation_height:
+                        type: integer
+                        example: 150000
+                      expiration_height:
+                        type: integer
+                        example: 151000
+                      yes_votes:
+                        type: integer
+                        example: 100
+                      no_votes:
+                        type: integer
+                        example: 20
+                      total_staked:
+                        type: integer
+                        example: 10000000000000
+                      active:
+                        type: boolean
+                        example: true
+                      passed:
+                        type: boolean
+                        example: false
+                  voters:
+                    type: array
+                    items:
+                      type: string
+        '404':
+          description: Proposal not found
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/getproposal \
+              -H "Content-Type: application/json" \
+              -d '{"proposal_id": 1}'
 
   /getvotingpower:
     get:
@@ -506,6 +661,61 @@ paths:
         - lang: "curl"
           source: |
             curl "http://localhost:21001/getvotingpower?address=PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
+    post:
+      tags:
+        - Governance
+      summary: getvotingpower - Get voting power for address (POST)
+      description: |
+        Returns the voting power of a specific address based on their staked amount.
+      operationId: getVotingPowerPost
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - address
+              properties:
+                address:
+                  type: string
+                  description: Wallet address to check voting power for
+            example:
+              address: "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "OK"
+                  address:
+                    type: string
+                    example: "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
+                  voting_power:
+                    type: integer
+                    example: 1000000000000
+                  voting_power_formatted:
+                    type: string
+                    example: "1000.00000000"
+                  total_staked:
+                    type: integer
+                    example: 1000000000000
+                  total_staked_formatted:
+                    type: string
+                    example: "1000.00000000"
+        '404':
+          description: Address not found or has no stakes
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/getvotingpower \
+              -H "Content-Type: application/json" \
+              -d '{"address": "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"}'
 
   /getallstakes:
     get:
@@ -598,6 +808,100 @@ paths:
         - lang: "curl"
           source: |
             curl "http://localhost:21001/getallstakes?page=0&limit=100"
+    post:
+      tags:
+        - Staking
+      summary: getallstakes - Get all stakes (paginated) (POST)
+      description: |
+        Returns all stakes in the system with pagination support.
+      operationId: getAllStakesPost
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                page:
+                  type: integer
+                  description: Page number for pagination
+                  default: 0
+                  minimum: 0
+                limit:
+                  type: integer
+                  description: Number of stakes per page
+                  default: 100
+                  minimum: 1
+                  maximum: 1000
+            example:
+              page: 0
+              limit: 100
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "OK"
+                  stakes:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        staking_tx_hash:
+                          type: string
+                          description: Staking transaction hash
+                          example: "abc123..."
+                        address:
+                          type: string
+                          description: Staker address
+                          example: "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
+                        amount:
+                          type: integer
+                          description: Staked amount (atomic units)
+                          example: 1000000000000
+                        amount_formatted:
+                          type: string
+                          description: Staked amount in human-readable format
+                          example: "1000.00000000"
+                        unlock_height:
+                          type: integer
+                          description: Block height when stake can be unlocked
+                          example: 160000
+                        pending_rewards:
+                          type: integer
+                          description: Pending rewards (atomic units)
+                          example: 50000000
+                        pending_rewards_formatted:
+                          type: string
+                          description: Pending rewards in human-readable format
+                          example: "0.05000000"
+                  total_stakes:
+                    type: integer
+                    description: Total number of stakes
+                    example: 500
+                  page:
+                    type: integer
+                    description: Current page number
+                    example: 0
+                  limit:
+                    type: integer
+                    description: Number of stakes per page
+                    example: 100
+                  total_staked:
+                    type: integer
+                    description: Total amount staked across all stakes (atomic units)
+                    example: 50000000000000
+      x-code-samples:
+        - lang: "curl"
+          source: |
+            curl -X POST http://localhost:21001/getallstakes \
+              -H "Content-Type: application/json" \
+              -d '{"page": 0, "limit": 100}'
 
   ################################################################################
   # REST ENDPOINTS - POST
@@ -1219,165 +1523,6 @@ paths:
               -H "Content-Type: application/json" \
               -d '{}'
 
-  /getproposals:
-    post:
-      tags:
-        - Governance
-      summary: getproposals - Get governance proposals
-      description: |
-        Returns governance proposals. Can filter for active proposals only.
-      operationId: getProposalsPost
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                active_only:
-                  type: boolean
-                  description: Whether to return only active proposals
-                  default: false
-            example:
-              active_only: true
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: "OK"
-                  proposals:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        proposal_id:
-                          type: integer
-                          example: 1
-                        title:
-                          type: string
-                          example: "Increase block reward"
-                        description:
-                          type: string
-                          example: "Proposal to increase block reward by 10%"
-                        creator:
-                          type: string
-                          example: "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
-                        creation_height:
-                          type: integer
-                          example: 150000
-                        expiration_height:
-                          type: integer
-                          example: 151000
-                        yes_votes:
-                          type: integer
-                          example: 100
-                        no_votes:
-                          type: integer
-                          example: 20
-                        total_staked:
-                          type: integer
-                          example: 10000000000000
-                        active:
-                          type: boolean
-                          example: true
-                        passed:
-                          type: boolean
-                          example: false
-      x-code-samples:
-        - lang: "curl"
-          source: |
-            curl -X POST http://localhost:21001/getproposals \
-              -H "Content-Type: application/json" \
-              -d '{"active_only": true}'
-
-  /getproposal:
-    post:
-      tags:
-        - Governance
-      summary: getproposal - Get specific proposal details
-      description: |
-        Returns detailed information about a specific governance proposal.
-      operationId: getProposalPost
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - proposal_id
-              properties:
-                proposal_id:
-                  type: integer
-                  description: Proposal ID to look up
-            example:
-              proposal_id: 1
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: "OK"
-                  proposal:
-                    type: object
-                    properties:
-                      proposal_id:
-                        type: integer
-                        example: 1
-                      title:
-                        type: string
-                        example: "Increase block reward"
-                      description:
-                        type: string
-                        example: "Proposal to increase block reward by 10%"
-                      creator:
-                        type: string
-                        example: "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
-                      creation_height:
-                        type: integer
-                        example: 150000
-                      expiration_height:
-                        type: integer
-                        example: 151000
-                      yes_votes:
-                        type: integer
-                        example: 100
-                      no_votes:
-                        type: integer
-                        example: 20
-                      total_staked:
-                        type: integer
-                        example: 10000000000000
-                      active:
-                        type: boolean
-                        example: true
-                      passed:
-                        type: boolean
-                        example: false
-                  voters:
-                    type: array
-                    items:
-                      type: string
-        '404':
-          description: Proposal not found
-      x-code-samples:
-        - lang: "curl"
-          source: |
-            curl -X POST http://localhost:21001/getproposal \
-              -H "Content-Type: application/json" \
-              -d '{"proposal_id": 1}'
-
   /getnextproposalid:
     post:
       tags:
@@ -1414,150 +1559,6 @@ paths:
             curl -X POST http://localhost:21001/getnextproposalid \
               -H "Content-Type: application/json" \
               -d '{}'
-
-  /getvotingpower:
-    post:
-      tags:
-        - Governance
-      summary: getvotingpower - Get voting power for address
-      description: |
-        Returns the voting power of a specific address based on their staked amount.
-      operationId: getVotingPowerPost
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - address
-              properties:
-                address:
-                  type: string
-                  description: Wallet address to check voting power for
-            example:
-              address: "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: "OK"
-                  address:
-                    type: string
-                    example: "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
-                  voting_power:
-                    type: integer
-                    example: 1000000000000
-                  voting_power_formatted:
-                    type: string
-                    example: "1000.00000000"
-                  total_staked:
-                    type: integer
-                    example: 1000000000000
-                  total_staked_formatted:
-                    type: string
-                    example: "1000.00000000"
-        '404':
-          description: Address not found or has no stakes
-      x-code-samples:
-        - lang: "curl"
-          source: |
-            curl -X POST http://localhost:21001/getvotingpower \
-              -H "Content-Type: application/json" \
-              -d '{
-                "address": "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
-              }'
-
-  /getallstakes:
-    post:
-      tags:
-        - Staking
-      summary: getallstakes - Get all stakes (paginated)
-      description: |
-        Returns all stakes in the system with pagination support.
-      operationId: getAllStakesPost
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                page:
-                  type: integer
-                  description: Page number for pagination
-                  default: 0
-                  minimum: 0
-                limit:
-                  type: integer
-                  description: Number of stakes per page
-                  default: 100
-                  minimum: 1
-                  maximum: 1000
-            example:
-              page: 0
-              limit: 100
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: "OK"
-                  stakes:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        staking_tx_hash:
-                          type: string
-                          example: "abc123..."
-                        address:
-                          type: string
-                          example: "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
-                        amount:
-                          type: integer
-                          example: 1000000000000
-                        amount_formatted:
-                          type: string
-                          example: "1000.00000000"
-                        unlock_height:
-                          type: integer
-                          example: 160000
-                        pending_rewards:
-                          type: integer
-                          example: 50000000
-                        pending_rewards_formatted:
-                          type: string
-                          example: "0.05000000"
-                  total_stakes:
-                    type: integer
-                    example: 500
-                  page:
-                    type: integer
-                    example: 0
-                  limit:
-                    type: integer
-                    example: 100
-                  total_staked:
-                    type: integer
-                    example: 50000000000000
-      x-code-samples:
-        - lang: "curl"
-          source: |
-            curl -X POST http://localhost:21001/getallstakes \
-              -H "Content-Type: application/json" \
-              -d '{"page": 0, "limit": 100}'
 
   ################################################################################
 
