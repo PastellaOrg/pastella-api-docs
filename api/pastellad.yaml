@@ -1436,25 +1436,41 @@ paths:
         - Staking
       summary: getuserstakes - Get user stake information
       description: |
-        Returns detailed information about specific stakes by their transaction hashes.
+        Returns detailed information about stakes. Can query either by transaction hashes or by wallet address.
       operationId: getUserStakes
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - staking_hashes
-              properties:
-                staking_hashes:
-                  type: array
-                  description: List of staking transaction hashes
-                  minItems: 1
-                  items:
-                    type: string
-            example:
-              staking_hashes: ["hash1...", "hash2..."]
+              oneOf:
+                - type: object
+                  required:
+                    - staking_hashes
+                  properties:
+                    staking_hashes:
+                      type: array
+                      description: List of staking transaction hashes
+                      minItems: 1
+                      items:
+                        type: string
+                - type: object
+                  required:
+                    - address
+                  properties:
+                    address:
+                      type: string
+                      description: Wallet address to get all stakes for
+                      example: "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
+            examples:
+              byHashes:
+                summary: Query by transaction hashes
+                value:
+                  staking_hashes: ["hash1...", "hash2..."]
+              byAddress:
+                summary: Query by wallet address
+                value:
+                  address: "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"
       responses:
         '200':
           description: Successful response
@@ -1475,10 +1491,17 @@ paths:
                       type: object
       x-code-samples:
         - lang: "curl"
+          label: By transaction hashes
           source: |
             curl -X POST http://localhost:21001/getuserstakes \
               -H "Content-Type: application/json" \
               -d '{"staking_hashes": ["hash1...", "hash2..."]}'
+        - lang: "curl"
+          label: By wallet address
+          source: |
+            curl -X POST http://localhost:21001/getuserstakes \
+              -H "Content-Type: application/json" \
+              -d '{"address": "PAS18z7m9DGbJFoVv6HiGoiwxNG5mLoniSEFWkguBKt59JSHPHjYaa"}'
 
   /updatestakingrewards:
     post:
